@@ -4,7 +4,6 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { Platform } from 'react-native';
 import { db } from './firebase';
 
-// Configuration du comportement des notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -13,8 +12,13 @@ Notifications.setNotificationHandler({
   } as Notifications.NotificationBehavior),
 });
 
-// Enregistrer le token FCM dans Firestore
 export async function registerForPushNotificationsAsync(userId: string) {
+  // Ignorer sur web pour éviter l'erreur VAPID
+  if (Platform.OS === 'web') {
+    console.log('Les notifications push ne sont pas supportées sur web pour le moment');
+    return;
+  }
+
   let token;
 
   if (Platform.OS === 'android') {
@@ -43,7 +47,6 @@ export async function registerForPushNotificationsAsync(userId: string) {
     token = (await Notifications.getExpoPushTokenAsync()).data;
     console.log('Push token:', token);
 
-    // Sauvegarder le token dans Firestore
     if (userId) {
       try {
         await updateDoc(doc(db, 'users', userId), {
@@ -61,7 +64,6 @@ export async function registerForPushNotificationsAsync(userId: string) {
   return token;
 }
 
-// Fonction pour envoyer une notification
 export async function sendPushNotification(
   expoPushToken: string,
   title: string,
