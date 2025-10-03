@@ -151,7 +151,6 @@ export default function TripDetailsScreen() {
                 }
               } catch (notifError) {
                 console.error('Erreur envoi notification:', notifError);
-                // Ne pas bloquer la réservation si la notification échoue
               }
 
               Alert.alert(
@@ -327,11 +326,6 @@ export default function TripDetailsScreen() {
     </ScrollView>
   );
 }
-
-// Les styles restent les mêmes...
-const styles = StyleSheet.create({
-  // ... (garde tous les styles existants)
-});
 
 const styles = StyleSheet.create({
   container: {

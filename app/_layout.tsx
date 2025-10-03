@@ -35,7 +35,6 @@ export default function RootLayout() {
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       console.log('Notification cliquée:', response);
-      // Naviguer vers l'écran approprié selon les données de la notification
       const data = response.notification.request.content.data;
       if (data.screen) {
         router.push(data.screen as any);
@@ -44,10 +43,10 @@ export default function RootLayout() {
 
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, []);
