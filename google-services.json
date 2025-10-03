@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "867439135045",
+    "project_id": "covoiturageapp-c3383",
+    "storage_bucket": "covoiturageapp-c3383.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:867439135045:android:642cae4ea1cc6e5d92962c",
+        "android_client_info": {
+          "package_name": "com.massamba.yoon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9h8vo0euern_nfa94rW8EEJoQwa9Ctgs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

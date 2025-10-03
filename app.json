@@ -1,15 +1,17 @@
 {
   "expo": {
-    "name": "CovoiturageApp",
-    "slug": "CovoiturageApp",
+    "name": "Yoon",
+    "slug": "yoon",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "covoiturageapp",
+    "scheme": "yoon",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.massamba.yoon",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +21,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.massamba.yoon",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -37,6 +41,14 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#007AFF",
+          "sounds": []
         }
       ]
     ],

@@ -1,112 +1,282 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { auth, db } from '@/config/firebase';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
+import { useState } from 'react';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function PublishScreen() {
+  const [departure, setDeparture] = useState('');
+  const [destination, setDestination] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [time, setTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [price, setPrice] = useState('');
+  const [seats, setSeats] = useState('');
+  const [loading, setLoading] = useState(false);
 
-export default function TabTwoScreen() {
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const formatTime = (date: Date) => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  };
+
+  const onTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setTime(selectedTime);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!departure || !destination || !price || !seats) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      return;
+    }
+
+    const priceNum = parseFloat(price);
+    const seatsNum = parseInt(seats);
+
+    if (isNaN(priceNum) || priceNum <= 0) {
+      Alert.alert('Erreur', 'Le prix doit être un nombre valide');
+      return;
+    }
+
+    if (isNaN(seatsNum) || seatsNum <= 0 || seatsNum > 8) {
+      Alert.alert('Erreur', 'Le nombre de places doit être entre 1 et 8');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Erreur', 'Vous devez être connecté pour publier un trajet');
+        return;
+      }
+
+      // Récupérer les infos de l'utilisateur depuis Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      console.log('Données utilisateur:', userData);
+      console.log('Nom qui sera utilisé:', userData?.name);
+
+      await addDoc(collection(db, 'trips'), {
+        departure: departure.trim(),
+        destination: destination.trim(),
+        date: formatDate(date),
+        time: formatTime(time),
+        price: priceNum,
+        availableSeats: seatsNum,
+        driverId: user.uid,
+        driverName: userData?.name || 'Utilisateur',
+        driverRating: userData?.rating || 0,
+        driverTripsCount: userData?.tripsCount || 0,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+
+      setDeparture('');
+      setDestination('');
+      setDate(new Date());
+      setTime(new Date());
+      setPrice('');
+      setSeats('');
+
+      Alert.alert(
+        'Succès', 
+        'Votre trajet a été publié avec succès',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Erreur lors de la publication:', error);
+      Alert.alert('Erreur', 'Impossible de publier le trajet. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Publier un trajet</Text>
+      
+      <View style={styles.form}>
+        <Text style={styles.label}>Départ *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ville de départ"
+          value={departure}
+          onChangeText={setDeparture}
+          editable={!loading}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
+
+        <Text style={styles.label}>Destination *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ville d'arrivée"
+          value={destination}
+          onChangeText={setDestination}
+          editable={!loading}
         />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+
+        <Text style={styles.label}>Date *</Text>
+        <TouchableOpacity 
+          style={styles.dateButton}
+          onPress={() => setShowDatePicker(true)}
+          disabled={loading}
+        >
+          <Text style={styles.dateButtonText}>
+            {formatDate(date)}
+          </Text>
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onDateChange}
+            minimumDate={new Date()}
+          />
+        )}
+
+        <Text style={styles.label}>Heure de départ *</Text>
+        <TouchableOpacity 
+          style={styles.dateButton}
+          onPress={() => setShowTimePicker(true)}
+          disabled={loading}
+        >
+          <Text style={styles.dateButtonText}>
+            {formatTime(time)}
+          </Text>
+        </TouchableOpacity>
+
+        {showTimePicker && (
+          <DateTimePicker
+            value={time}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onTimeChange}
+            is24Hour={true}
+          />
+        )}
+
+        <Text style={styles.label}>Prix par passager (CFA) *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: 2500"
+          keyboardType="numeric"
+          value={price}
+          onChangeText={setPrice}
+          editable={!loading}
+        />
+
+        <Text style={styles.label}>Nombre de places disponibles *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: 3"
+          keyboardType="numeric"
+          value={seats}
+          onChangeText={setSeats}
+          editable={!loading}
+        />
+
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handlePublish}
+          disabled={loading}
+        >
+          {loading ? (
+            <Text style={styles.buttonText}>Publication en cours...</Text>
+          ) : (
+            <Text style={styles.buttonText}>Publier le trajet</Text>
+          )}
+        </TouchableOpacity>
+
+        <Text style={styles.note}>* Tous les champs sont obligatoires</Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  form: {
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 20,
+    borderRadius: 10,
+    marginBottom: 40,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+    backgroundColor: '#fff',
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    backgroundColor: '#fff',
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  button: {
+    backgroundColor: '#34C759',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: '#a8d5ba',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  note: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 15,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
