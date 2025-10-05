@@ -13,12 +13,6 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerForPushNotificationsAsync(userId: string) {
-  // Ignorer sur web pour éviter l'erreur VAPID
-  if (Platform.OS === 'web') {
-    console.log('Les notifications push ne sont pas supportées sur web pour le moment');
-    return;
-  }
-
   let token;
 
   if (Platform.OS === 'android') {
@@ -44,15 +38,21 @@ export async function registerForPushNotificationsAsync(userId: string) {
       return;
     }
     
-    token = (await Notifications.getExpoPushTokenAsync()).data;
+    // ✅ CORRECTION : Ajout du projectId EAS
+    token = (await Notifications.getExpoPushTokenAsync({
+      projectId: '3a587985-e20c-44d1-b91a-347ef78a8429'
+    })).data;
+    
     console.log('Push token:', token);
 
+    // Sauvegarder le token dans Firestore
     if (userId) {
       try {
         await updateDoc(doc(db, 'users', userId), {
           pushToken: token,
           lastTokenUpdate: new Date().toISOString(),
         });
+        console.log('✅ Token sauvegardé dans Firestore');
       } catch (error) {
         console.error('Erreur sauvegarde token:', error);
       }
