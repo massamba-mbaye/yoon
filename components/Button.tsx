@@ -1,5 +1,6 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BorderRadius, Colors, IconSizes, Shadows, Spacing, Typography } from '@/constants/theme';
+import { SymbolViewProps } from 'expo-symbols';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'success';
@@ -12,7 +13,7 @@ interface ButtonProps {
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
-  icon?: string;
+  icon?: SymbolViewProps['name'];
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
 }
