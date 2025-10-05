@@ -1,6 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { auth, db } from '@/config/firebase';
 import { BorderRadius, Colors, IconSizes, Shadows, Spacing, Typography } from '@/constants/theme';
+import { AuthService } from '@/services/authService';
 import { router } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -42,7 +43,13 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
+      // Supprimer les données d'authentification PIN
+      await AuthService.clearAuthData();
+      
+      // Déconnexion Firebase
       await signOut(auth);
+      
+      // Rediriger
       router.replace('/auth');
     } catch (error) {
       console.error('Erreur déconnexion:', error);

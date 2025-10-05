@@ -37,17 +37,23 @@ export default function AuthScreen() {
       setLoading(true);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        name,
-        email,
-        phone,
-        rating: 0,
-        tripsCount: 0,
-        verified: false,
-        createdAt: new Date().toISOString(),
-      });
+    // NOUVEAU CODE
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      name,
+      email,
+      phone,
+      rating: 0,
+      tripsCount: 0,
+      verified: false,
+      createdAt: new Date().toISOString(),
+    });
 
-      router.replace('/(tabs)');
+    // Rediriger vers la configuration du PIN
+    router.replace({
+      pathname: '/pin-setup' as any,
+      params: { email, password }
+    });
+
     } catch (error: any) {
       Alert.alert('Erreur', error.message);
     } finally {

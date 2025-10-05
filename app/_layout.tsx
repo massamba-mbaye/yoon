@@ -1,5 +1,6 @@
 import { auth } from '@/config/firebase';
 import { registerForPushNotificationsAsync } from '@/config/notifications';
+import { AuthService } from '@/services/authService';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -51,14 +52,25 @@ export default function RootLayout() {
     };
   }, []);
 
+  const checkPinAndRedirect = async () => {
+    const hasPin = await AuthService.hasPin();
+    
+    if (hasPin) {
+      router.replace('/pin-entry' as any);
+    } else {
+      router.replace('/auth' as any);
+    }
+  };
+
   useEffect(() => {
     if (initializing) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
 
     if (!user && inAuthGroup) {
-      router.replace('/auth');
-    } else if (user && !inAuthGroup && segments[0] !== 'trip-details' && segments[0] !== 'my-trips' && segments[0] !== 'my-bookings' && segments[0] !== 'trip-passengers') {
+      // Vérifier si un PIN existe
+      checkPinAndRedirect();
+    } else if (user && !inAuthGroup && segments[0] !== 'trip-details' && segments[0] !== 'my-trips' && segments[0] !== 'my-bookings' && segments[0] !== 'trip-passengers' && segments[0] !== 'pin-setup' && segments[0] !== 'pin-entry') {
       router.replace('/(tabs)');
     }
   }, [user, segments, initializing]);
@@ -67,6 +79,22 @@ export default function RootLayout() {
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
+      
+      <Stack.Screen 
+        name="pin-entry" 
+        options={{ 
+          headerShown: false,
+          gestureEnabled: false,
+        }} 
+      />
+      <Stack.Screen 
+        name="pin-setup" 
+        options={{ 
+          headerShown: false,
+          gestureEnabled: false,
+        }} 
+      />
+      
       <Stack.Screen 
         name="trip-details" 
         options={{ 
