@@ -1,5 +1,6 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { auth, db } from '@/config/firebase';
+import { sendPushNotification } from '@/config/notifications'; // ✅ AJOUT IMPORT
 import { BorderRadius, Colors, IconSizes, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { addDoc, collection, doc, getDoc, getDocs, increment, query, updateDoc, where } from 'firebase/firestore';
@@ -117,8 +118,39 @@ export default function TripDetailsScreen() {
                   availableSeats: increment(-seats)
                 });
 
-                // Notification désactivée pour le moment
-                // TODO: Implémenter les notifications push plus tard
+                // ✅ NOTIFICATIONS ACTIVÉES
+                try {
+                  console.log('🔍 Recherche du conducteur ID:', trip.driverId);
+                  
+                  const driverDoc = await getDoc(doc(db, 'users', trip.driverId));
+                  const driverData = driverDoc.data();
+
+                  console.log('👤 Données conducteur:', {
+                    exists: driverDoc.exists(),
+                    hasPushToken: !!driverData?.pushToken,
+                    pushToken: driverData?.pushToken
+                  });
+
+                  if (driverData?.pushToken) {
+                    console.log('📤 Envoi notification au conducteur...');
+                    
+                    const result = await sendPushNotification(
+                      driverData.pushToken,
+                      '🎉 Nouvelle réservation !',
+                      `${userData?.name || 'Un passager'} a réservé ${seats} place(s) pour ${trip.departure} → ${trip.destination}`,
+                      { 
+                        screen: '/my-trips',
+                        tripId: trip.id 
+                      }
+                    );
+                    
+                    console.log('✅ Notification envoyée, résultat:', result);
+                  } else {
+                    console.log('⚠️ Conducteur sans pushToken - notification non envoyée');
+                  }
+                } catch (notifError) {
+                  console.error('❌ Erreur envoi notification:', notifError);
+                }
 
                 Alert.alert(
                   'Succès',

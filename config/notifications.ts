@@ -9,7 +9,9 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
-  } as Notifications.NotificationBehavior),
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
 });
 
 export async function registerForPushNotificationsAsync(userId: string) {
@@ -34,31 +36,34 @@ export async function registerForPushNotificationsAsync(userId: string) {
     }
     
     if (finalStatus !== 'granted') {
-      console.log('Permission refusée pour les notifications');
+      console.log('❌ Permission refusée pour les notifications');
       return;
     }
     
-    // ✅ CORRECTION : Ajout du projectId EAS
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: '3a587985-e20c-44d1-b91a-347ef78a8429'
-    })).data;
-    
-    console.log('Push token:', token);
+    try {
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId: '3a587985-e20c-44d1-b91a-347ef78a8429'
+      })).data;
+      
+      console.log('✅ Push token généré:', token);
+    } catch (error) {
+      console.error('❌ Erreur génération token:', error);
+      return;
+    }
 
-    // Sauvegarder le token dans Firestore
     if (userId) {
       try {
         await updateDoc(doc(db, 'users', userId), {
           pushToken: token,
           lastTokenUpdate: new Date().toISOString(),
         });
-        console.log('✅ Token sauvegardé dans Firestore');
+        console.log('✅ Token sauvegardé dans Firestore pour user:', userId);
       } catch (error) {
-        console.error('Erreur sauvegarde token:', error);
+        console.error('❌ Erreur sauvegarde token:', error);
       }
     }
   } else {
-    console.log('Les notifications ne fonctionnent que sur un appareil physique');
+    console.log('⚠️ Les notifications ne fonctionnent que sur un appareil physique');
   }
 
   return token;
@@ -79,7 +84,11 @@ export async function sendPushNotification(
   };
 
   try {
-    await fetch('https://exp.host/--/api/v2/push/send', {
+    console.log('📤 Envoi notification vers:', expoPushToken);
+    console.log('📤 Titre:', title);
+    console.log('📤 Message:', body);
+    
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -88,7 +97,17 @@ export async function sendPushNotification(
       },
       body: JSON.stringify(message),
     });
+
+    const result = await response.json();
+    console.log('✅ Réponse serveur Expo:', result);
+    
+    if (result.data && result.data.status === 'error') {
+      console.error('❌ Erreur Expo Push:', result.data.message);
+    }
+    
+    return result;
   } catch (error) {
-    console.error('Erreur envoi notification:', error);
+    console.error('❌ Erreur envoi notification:', error);
+    throw error;
   }
 }
