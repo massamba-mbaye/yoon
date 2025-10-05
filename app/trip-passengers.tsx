@@ -1,8 +1,19 @@
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { db } from '@/config/firebase';
+import { BorderRadius, Colors, IconSizes, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface Passenger {
   id: string;
@@ -20,6 +31,7 @@ interface Trip {
   date: string;
   time: string;
   availableSeats: number;
+  price: number;
 }
 
 export default function TripPassengersScreen() {
@@ -37,13 +49,11 @@ export default function TripPassengersScreen() {
     try {
       setLoading(true);
 
-      // Charger les infos du trajet
       const tripDoc = await getDoc(doc(db, 'trips', id as string));
       if (tripDoc.exists()) {
         setTrip(tripDoc.data() as Trip);
       }
 
-      // Charger les passagers
       const q = query(
         collection(db, 'bookings'),
         where('tripId', '==', id),
@@ -60,7 +70,6 @@ export default function TripPassengersScreen() {
         } as Passenger);
       });
 
-      // Trier par date de réservation
       passengersData.sort((a, b) => {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
@@ -88,108 +97,211 @@ export default function TripPassengersScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+        <Text style={styles.loadingText}>Chargement...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Retour</Text>
+          <IconSymbol 
+            name="chevron.left" 
+            size={IconSizes.md} 
+            color={Colors.primary.main} 
+          />
+          <Text style={styles.backBtnText}>Retour</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Passagers</Text>
+        <Text style={styles.headerSubtitle}>
+          {departure} → {destination}
+        </Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Trip Info Card */}
         {trip && (
-          <View style={styles.tripInfo}>
-            <View style={styles.routeContainer}>
-              <Text style={styles.city}>{trip.departure}</Text>
-              <Text style={styles.arrow}>→</Text>
-              <Text style={styles.city}>{trip.destination}</Text>
-            </View>
-            <Text style={styles.tripDate}>{trip.date} à {trip.time}</Text>
-            
-            <View style={styles.statsContainer}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{passengers.length}</Text>
-                <Text style={styles.statLabel}>Passager{passengers.length > 1 ? 's' : ''}</Text>
+          <View style={styles.tripInfoCard}>
+            <View style={styles.tripInfoRow}>
+              <View style={styles.tripInfoItem}>
+                <IconSymbol 
+                  name="calendar" 
+                  size={IconSizes.sm} 
+                  color={Colors.gray[600]} 
+                />
+                <Text style={styles.tripInfoText}>{trip.date}</Text>
               </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{totalSeatsBooked}</Text>
-                <Text style={styles.statLabel}>Place{totalSeatsBooked > 1 ? 's' : ''}</Text>
+              
+              <View style={styles.tripInfoItem}>
+                <IconSymbol 
+                  name="clock.fill" 
+                  size={IconSizes.sm} 
+                  color={Colors.gray[600]} 
+                />
+                <Text style={styles.tripInfoText}>{trip.time}</Text>
               </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{trip.availableSeats}</Text>
-                <Text style={styles.statLabel}>Restante{trip.availableSeats > 1 ? 's' : ''}</Text>
-              </View>
-            </View>
-
-            <View style={styles.revenueBox}>
-              <Text style={styles.revenueLabel}>Revenu total</Text>
-              <Text style={styles.revenueValue}>{totalRevenue} CFA</Text>
             </View>
           </View>
         )}
 
+        {/* Stats Cards */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <View style={styles.statIconContainer}>
+              <IconSymbol 
+                name="person.fill" 
+                size={IconSizes.lg} 
+                color={Colors.primary.main} 
+              />
+            </View>
+            <Text style={styles.statNumber}>{passengers.length}</Text>
+            <Text style={styles.statLabel}>
+              Passager{passengers.length > 1 ? 's' : ''}
+            </Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={styles.statIconContainer}>
+              <IconSymbol 
+                name="chair.fill" 
+                size={IconSizes.lg} 
+                color={Colors.secondary.main} 
+              />
+            </View>
+            <Text style={styles.statNumber}>{totalSeatsBooked}</Text>
+            <Text style={styles.statLabel}>
+              Place{totalSeatsBooked > 1 ? 's' : ''} réservée{totalSeatsBooked > 1 ? 's' : ''}
+            </Text>
+          </View>
+
+          {trip && (
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
+                <IconSymbol 
+                  name="chair.fill" 
+                  size={IconSizes.lg} 
+                  color={Colors.accent.orange} 
+                />
+              </View>
+              <Text style={styles.statNumber}>{trip.availableSeats}</Text>
+              <Text style={styles.statLabel}>
+                Restante{trip.availableSeats > 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Revenue Card */}
+        <View style={styles.revenueCard}>
+          <View style={styles.revenueHeader}>
+            <IconSymbol 
+              name="checkmark.circle.fill" 
+              size={IconSizes.md} 
+              color={Colors.secondary.main} 
+            />
+            <Text style={styles.revenueLabel}>Revenu total</Text>
+          </View>
+          <Text style={styles.revenueValue}>{totalRevenue} CFA</Text>
+        </View>
+
+        {/* Passengers List */}
         {passengers.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>👥</Text>
+            <View style={styles.emptyIconContainer}>
+              <IconSymbol 
+                name="person.fill" 
+                size={IconSizes.xl * 2} 
+                color={Colors.gray[300]} 
+              />
+            </View>
             <Text style={styles.emptyText}>Aucune réservation</Text>
             <Text style={styles.emptySubtext}>
               Les passagers qui réserveront ce trajet apparaîtront ici
             </Text>
           </View>
         ) : (
-          <View style={styles.passengersContainer}>
-            <Text style={styles.sectionTitle}>Liste des passagers</Text>
+          <View style={styles.passengersSection}>
+            <Text style={styles.sectionTitle}>
+              Liste des passagers ({passengers.length})
+            </Text>
             
             {passengers.map((passenger, index) => (
               <View key={passenger.id} style={styles.passengerCard}>
+                {/* Header */}
                 <View style={styles.passengerHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{passenger.passengerName.charAt(0)}</Text>
+                  <View style={styles.passengerLeft}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {passenger.passengerName.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.passengerInfo}>
+                      <Text style={styles.passengerName}>
+                        {passenger.passengerName}
+                      </Text>
+                      <Text style={styles.passengerPhone}>
+                        {passenger.passengerPhone}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.passengerInfo}>
-                    <Text style={styles.passengerName}>{passenger.passengerName}</Text>
-                    <Text style={styles.passengerPhone}>{passenger.passengerPhone}</Text>
-                  </View>
+
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>#{index + 1}</Text>
                   </View>
                 </View>
 
+                {/* Details */}
                 <View style={styles.passengerDetails}>
-                  <View style={styles.detailRow}>
+                  <View style={styles.detailItem}>
+                    <IconSymbol 
+                      name="chair.fill" 
+                      size={IconSizes.sm} 
+                      color={Colors.gray[600]} 
+                    />
                     <Text style={styles.detailLabel}>Places réservées</Text>
                     <Text style={styles.detailValue}>{passenger.seatsBooked}</Text>
                   </View>
-                  <View style={styles.detailRow}>
+
+                  <View style={styles.detailItem}>
+                    <Text style={styles.priceIcon}>CFA</Text>
                     <Text style={styles.detailLabel}>Montant payé</Text>
-                    <Text style={styles.priceValue}>{passenger.totalPrice} CFA</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Réservé le</Text>
-                    <Text style={styles.detailValue}>
-                      {new Date(passenger.createdAt).toLocaleDateString('fr-FR')}
-                    </Text>
+                    <Text style={styles.priceValue}>{passenger.totalPrice}</Text>
                   </View>
                 </View>
 
-                <View style={styles.contactButtons}>
-                  <TouchableOpacity 
-                    style={styles.callButton}
+                {/* Actions */}
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.callButton]}
                     onPress={() => handleCallPassenger(passenger.passengerPhone)}
+                    activeOpacity={0.7}
                   >
+                    <IconSymbol 
+                      name="phone.fill" 
+                      size={IconSizes.sm} 
+                      color={Colors.secondary.main} 
+                    />
                     <Text style={styles.callButtonText}>Appeler</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={styles.smsButton}
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.smsButton]}
                     onPress={() => handleSMSPassenger(passenger.passengerPhone)}
+                    activeOpacity={0.7}
                   >
+                    <IconSymbol 
+                      name="message.fill" 
+                      size={IconSizes.sm} 
+                      color={Colors.primary.main} 
+                    />
                     <Text style={styles.smsButtonText}>SMS</Text>
                   </TouchableOpacity>
                 </View>
@@ -205,245 +317,354 @@ export default function TripPassengersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.light.backgroundSecondary,
   },
+  
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.light.backgroundSecondary,
   },
+  
+  loadingText: {
+    marginTop: Spacing.md,
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[600],
+  },
+  
+  // Header
   header: {
-    backgroundColor: 'white',
-    padding: 20,
-    paddingTop: 60,
+    backgroundColor: Colors.light.card,
+    paddingTop: Spacing['2xl'] + 20,
+    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: Colors.gray[200],
   },
+  
   backBtn: {
-    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
+  
   backBtnText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.primary.main,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.semibold,
   },
+  
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: Typography.sizes['2xl'],
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
+    marginBottom: Spacing.xs / 2,
   },
+  
+  headerSubtitle: {
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[600],
+    fontWeight: Typography.fontWeights.medium,
+  },
+  
+  // Content
   content: {
     flex: 1,
   },
-  tripInfo: {
-    backgroundColor: 'white',
-    margin: 20,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  
+  scrollContent: {
+    paddingBottom: Spacing['2xl'],
   },
-  routeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+  
+  // Trip Info Card
+  tripInfoCard: {
+    backgroundColor: Colors.light.card,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
-  city: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  arrow: {
-    fontSize: 18,
-    marginHorizontal: 8,
-    color: '#007AFF',
-  },
-  tripDate: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-  },
-  statsContainer: {
+  
+  tripInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#f0f0f0',
-    marginBottom: 16,
   },
-  statBox: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  revenueBox: {
-    backgroundColor: '#E8F5E9',
-    padding: 16,
-    borderRadius: 8,
+  
+  tripInfoItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  
+  tripInfoText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.gray[700],
+    fontWeight: Typography.fontWeights.medium,
+  },
+  
+  // Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.light.card,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  
+  statNumber: {
+    fontSize: Typography.sizes['2xl'],
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
+    marginBottom: 2,
+  },
+  
+  statLabel: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.gray[600],
+    textAlign: 'center',
+  },
+  
+  // Revenue Card
+  revenueCard: {
+    backgroundColor: Colors.secondary.light + '20',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 2,
+    borderColor: Colors.secondary.main + '40',
     alignItems: 'center',
   },
+  
+  revenueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  
   revenueLabel: {
-    fontSize: 14,
-    color: '#2E7D32',
-    fontWeight: '600',
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.semibold,
+    color: Colors.gray[700],
   },
+  
   revenueValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2E7D32',
+    fontSize: Typography.sizes['3xl'],
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.secondary.main,
   },
+  
+  // Empty State
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
-    marginTop: 40,
+    padding: Spacing.xl,
+    marginTop: Spacing['2xl'],
   },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: 20,
-  },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  emptySubtext: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  passengersContainer: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-  },
-  passengerCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  passengerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#007AFF',
+  
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray[100],
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginBottom: Spacing.lg,
   },
+  
+  emptyText: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[700],
+    marginBottom: Spacing.xs,
+  },
+  
+  emptySubtext: {
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[500],
+    textAlign: 'center',
+    lineHeight: Typography.lineHeights.relaxed * Typography.sizes.base,
+  },
+  
+  // Passengers Section
+  passengersSection: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  
+  sectionTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
+    marginBottom: Spacing.md,
+  },
+  
+  // Passenger Card
+  passengerCard: {
+    backgroundColor: Colors.light.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    ...Shadows.md,
+  },
+  
+  passengerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  
+  passengerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary.light,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  
   avatarText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
+    color: Colors.primary.dark,
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.fontWeights.bold,
   },
+  
   passengerInfo: {
     flex: 1,
   },
+  
   passengerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
+    marginBottom: 2,
   },
+  
   passengerPhone: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: Typography.sizes.sm,
+    color: Colors.gray[600],
   },
+  
   badge: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: Colors.primary[50],
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: BorderRadius.md,
   },
+  
   badgeText: {
-    color: '#1976D2',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.primary.main,
   },
+  
+  // Passenger Details
   passengerDetails: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#f0f0f0',
-    paddingVertical: 12,
-    marginBottom: 12,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  detailRow: {
+  
+  detailItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
+  
   detailLabel: {
-    fontSize: 14,
-    color: '#666',
+    flex: 1,
+    fontSize: Typography.sizes.sm,
+    color: Colors.gray[600],
+    fontWeight: Typography.fontWeights.medium,
   },
+  
   detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
   },
+  
+  priceIcon: {
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[700],
+    backgroundColor: Colors.gray[100],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  
   priceValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#34C759',
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.secondary.main,
   },
-  contactButtons: {
+  
+  // Actions Row
+  actionsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: Spacing.sm,
   },
+  
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+  },
+  
   callButton: {
-    flex: 1,
-    backgroundColor: '#34C759',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: Colors.secondary.light + '20',
+    borderColor: Colors.secondary.main,
   },
+  
   callButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+    color: Colors.secondary.main,
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.fontWeights.bold,
   },
+  
   smsButton: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: Colors.primary[50],
+    borderColor: Colors.primary.main,
   },
+  
   smsButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: Colors.primary.main,
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.fontWeights.bold,
   },
 });

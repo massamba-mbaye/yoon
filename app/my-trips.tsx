@@ -1,9 +1,19 @@
 import { TripCard } from '@/components/TripCard';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { auth, db } from '@/config/firebase';
+import { BorderRadius, Colors, IconSizes, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import { collection, deleteDoc, doc, getDocs, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface Trip {
   id: string;
@@ -91,6 +101,13 @@ export default function MyTripsScreen() {
     );
   };
 
+  const handleViewPassengers = (tripId: string, departure: string, destination: string) => {
+    router.push({
+      pathname: '/trip-passengers',
+      params: { id: tripId, departure, destination }
+    });
+  };
+
   const handleTripPress = (tripId: string) => {
     router.push({
       pathname: '/trip-details',
@@ -101,79 +118,122 @@ export default function MyTripsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+        <Text style={styles.loadingText}>Chargement...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Retour</Text>
+          <IconSymbol 
+            name="chevron.left" 
+            size={IconSizes.md} 
+            color={Colors.primary.main} 
+          />
+          <Text style={styles.backBtnText}>Retour</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mes trajets publiés</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {trips.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚗</Text>
+            <View style={styles.emptyIconContainer}>
+              <IconSymbol 
+                name="car.fill" 
+                size={IconSizes.xl * 2} 
+                color={Colors.gray[300]} 
+              />
+            </View>
             <Text style={styles.emptyText}>Aucun trajet publié</Text>
             <Text style={styles.emptySubtext}>
-              Publiez votre premier trajet pour commencer
+              Publiez votre premier trajet pour commencer à partager vos voyages
             </Text>
             <TouchableOpacity 
               style={styles.publishButton}
-              onPress={() => router.push('/(tabs)')}
+              onPress={() => router.push('/(tabs)/explore')}
+              activeOpacity={0.7}
             >
+              <IconSymbol 
+                name="plus.circle.fill" 
+                size={IconSizes.md} 
+                color={Colors.light.background} 
+              />
               <Text style={styles.publishButtonText}>Publier un trajet</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.tripsContainer}>
-            <Text style={styles.count}>
-              {trips.length} trajet{trips.length > 1 ? 's' : ''}
-            </Text>
-            
-            {trips.map(trip => (
-              <View key={trip.id} style={styles.tripWrapper}>
-                <TripCard
-                  trip={{
-                    ...trip,
-                    driver: {
-                      name: trip.driverName,
-                      rating: trip.driverRating,
-                      tripsCount: trip.driverTripsCount
-                    }
-                  }}
-                  onPress={() => handleTripPress(trip.id)}
+            <View style={styles.statsCard}>
+              <View style={styles.statItem}>
+                <IconSymbol 
+                  name="car.fill" 
+                  size={IconSizes.lg} 
+                  color={Colors.primary.main} 
                 />
-                
-                <View style={styles.tripActions}>
-                  <TouchableOpacity
-                    style={styles.passengersButton}
-                    onPress={() => router.push({
-                      pathname: '/trip-passengers',
-                      params: { 
-                        id: trip.id,
-                        departure: trip.departure,
-                        destination: trip.destination
-                      }
-                    })}
-                  >
-                    <Text style={styles.passengersButtonText}>Voir les passagers</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteTrip(trip.id)}
-                  >
-                    <Text style={styles.deleteButtonText}>Supprimer</Text>
-                  </TouchableOpacity>
+                <View style={styles.statContent}>
+                  <Text style={styles.statNumber}>{trips.length}</Text>
+                  <Text style={styles.statLabel}>
+                    Trajet{trips.length > 1 ? 's' : ''} publié{trips.length > 1 ? 's' : ''}
+                  </Text>
                 </View>
               </View>
-            ))}
+            </View>
+
+            <View style={styles.tripsList}>
+              {trips.map(trip => (
+                <View key={trip.id} style={styles.tripCardWrapper}>
+                  <TripCard 
+                    trip={{
+                      ...trip,
+                      driver: {
+                        name: trip.driverName,
+                        rating: trip.driverRating,
+                        tripsCount: trip.driverTripsCount
+                      }
+                    }} 
+                    onPress={() => handleTripPress(trip.id)}
+                  />
+                  
+                  {/* Actions */}
+                  <View style={styles.actionsRow}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.viewButton]}
+                      onPress={() => handleViewPassengers(trip.id, trip.departure, trip.destination)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        name="person.fill" 
+                        size={IconSizes.sm} 
+                        color={Colors.primary.main} 
+                      />
+                      <Text style={styles.viewButtonText}>Passagers</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.deleteButton]}
+                      onPress={() => handleDeleteTrip(trip.id)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        name="xmark.circle.fill" 
+                        size={IconSizes.sm} 
+                        color={Colors.error} 
+                      />
+                      <Text style={styles.deleteButtonText}>Supprimer</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -184,110 +244,195 @@ export default function MyTripsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.light.backgroundSecondary,
   },
+  
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.light.backgroundSecondary,
   },
+  
+  loadingText: {
+    marginTop: Spacing.md,
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[600],
+  },
+  
+  // Header
   header: {
-    backgroundColor: 'white',
-    padding: 20,
-    paddingTop: 60,
+    backgroundColor: Colors.light.card,
+    paddingTop: Spacing['2xl'] + 20,
+    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: Colors.gray[200],
   },
+  
   backBtn: {
-    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
+  
   backBtnText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.primary.main,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.semibold,
   },
+  
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: Typography.sizes['2xl'],
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
   },
+  
+  // Content
   content: {
     flex: 1,
   },
+  
+  scrollContent: {
+    paddingBottom: Spacing['2xl'],
+  },
+  
+  // Empty State
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
-    marginTop: 60,
+    padding: Spacing.xl,
+    marginTop: Spacing['3xl'],
   },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: 20,
+  
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
   },
+  
   emptyText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[700],
+    marginBottom: Spacing.xs,
   },
+  
   emptySubtext: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[500],
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: Spacing.xl,
+    lineHeight: Typography.lineHeights.relaxed * Typography.sizes.base,
+    paddingHorizontal: Spacing.lg,
   },
+  
   publishButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 8,
-  },
-  publishButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  tripsContainer: {
-    padding: 20,
-  },
-  count: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
-  },
-  tripWrapper: {
-    marginBottom: 20,
-  },
-  tripActions: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-  },
-  passengersButton: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
     alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary.main,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.md,
   },
-  passengersButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+  
+  publishButtonText: {
+    color: Colors.light.background,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.bold,
   },
+  
+  // Trips Container
+  tripsContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  
+  // Stats Card
+  statsCard: {
+    backgroundColor: Colors.light.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
+  },
+  
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  
+  statContent: {
+    flex: 1,
+  },
+  
+  statNumber: {
+    fontSize: Typography.sizes['3xl'],
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
+  },
+  
+  statLabel: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.gray[600],
+    marginTop: -4,
+  },
+  
+  // Trips List
+  tripsList: {
+    gap: Spacing.lg,
+  },
+  
+  tripCardWrapper: {
+    marginBottom: Spacing.sm,
+  },
+  
+  // Actions Row
+  actionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+  },
+  
+  viewButton: {
+    backgroundColor: Colors.primary[50],
+    borderColor: Colors.primary.main,
+  },
+  
+  viewButtonText: {
+    color: Colors.primary.main,
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  
   deleteButton: {
-    flex: 1,
-    backgroundColor: '#FF3B30',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: Colors.error + '10',
+    borderColor: Colors.error,
   },
+  
   deleteButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+    color: Colors.error,
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.fontWeights.bold,
   },
 });

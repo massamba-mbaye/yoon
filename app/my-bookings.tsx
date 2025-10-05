@@ -1,8 +1,19 @@
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { auth, db } from '@/config/firebase';
+import { BorderRadius, Colors, IconSizes, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import { collection, deleteDoc, doc, getDoc, getDocs, increment, query, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface Booking {
   id: string;
@@ -26,7 +37,6 @@ export default function MyBookingsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('MyBookingsScreen mounted');
     loadMyBookings();
   }, []);
 
@@ -36,12 +46,9 @@ export default function MyBookingsScreen() {
       const user = auth.currentUser;
       
       if (!user) {
-        console.log('No user, redirecting to auth');
         router.replace('/auth');
         return;
       }
-
-      console.log('Loading bookings for user:', user.uid);
 
       const q = query(
         collection(db, 'bookings'),
@@ -49,13 +56,10 @@ export default function MyBookingsScreen() {
       );
 
       const querySnapshot = await getDocs(q);
-      console.log('Number of bookings found:', querySnapshot.size);
-      
       const bookingsData: Booking[] = [];
       
       for (const docSnapshot of querySnapshot.docs) {
         const bookingData = docSnapshot.data();
-        console.log('Booking data:', bookingData);
         
         const tripDoc = await getDoc(doc(db, 'trips', bookingData.tripId));
         const tripData = tripDoc.exists() ? tripDoc.data() : null;
@@ -77,7 +81,6 @@ export default function MyBookingsScreen() {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
-      console.log('Total bookings loaded:', bookingsData.length);
       setBookings(bookingsData);
     } catch (error) {
       console.error('Error loading bookings:', error);
@@ -150,108 +153,199 @@ Réservé via Yoon`;
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Chargement des réservations...</Text>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+        <Text style={styles.loadingText}>Chargement...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Retour</Text>
+          <IconSymbol 
+            name="chevron.left" 
+            size={IconSizes.md} 
+            color={Colors.primary.main} 
+          />
+          <Text style={styles.backBtnText}>Retour</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mes réservations</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {bookings.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚗</Text>
+            <View style={styles.emptyIconContainer}>
+              <IconSymbol 
+                name="ticket.fill" 
+                size={IconSizes.xl * 2} 
+                color={Colors.gray[300]} 
+              />
+            </View>
             <Text style={styles.emptyText}>Aucune réservation</Text>
             <Text style={styles.emptySubtext}>
-              Recherchez un trajet et réservez votre place
+              Recherchez un trajet et réservez votre place pour commencer
             </Text>
             <TouchableOpacity 
               style={styles.searchButton}
               onPress={() => router.push('/(tabs)')}
+              activeOpacity={0.7}
             >
+              <IconSymbol 
+                name="magnifyingglass" 
+                size={IconSizes.md} 
+                color={Colors.light.background} 
+              />
               <Text style={styles.searchButtonText}>Rechercher un trajet</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.bookingsContainer}>
-            <Text style={styles.count}>
-              {bookings.length} réservation{bookings.length > 1 ? 's' : ''}
-            </Text>
-            
+            <View style={styles.statsCard}>
+              <View style={styles.statItem}>
+                <IconSymbol 
+                  name="ticket.fill" 
+                  size={IconSizes.lg} 
+                  color={Colors.secondary.main} 
+                />
+                <View style={styles.statContent}>
+                  <Text style={styles.statNumber}>{bookings.length}</Text>
+                  <Text style={styles.statLabel}>
+                    Réservation{bookings.length > 1 ? 's' : ''} active{bookings.length > 1 ? 's' : ''}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             {bookings.map(booking => (
-              <View key={booking.id} style={styles.bookingCard}>
-                {booking.trip ? (
-                  <>
-                    <View style={styles.routeContainer}>
-                      <Text style={styles.city}>{booking.trip.departure}</Text>
-                      <Text style={styles.arrow}>→</Text>
-                      <Text style={styles.city}>{booking.trip.destination}</Text>
+              booking.trip ? (
+                <View key={booking.id} style={styles.bookingCard}>
+                  {/* Route */}
+                  <View style={styles.routeSection}>
+                    <View style={styles.routeRow}>
+                      <View style={styles.routeDot}>
+                        <IconSymbol 
+                          name="location.fill" 
+                          size={IconSizes.sm} 
+                          color={Colors.primary.main} 
+                        />
+                      </View>
+                      <Text style={styles.cityText}>{booking.trip.departure}</Text>
                     </View>
-
-                    <View style={styles.detailsContainer}>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Date</Text>
-                        <Text style={styles.detailValue}>{booking.trip.date}</Text>
+                    
+                    <View style={styles.routeLine} />
+                    
+                    <View style={styles.routeRow}>
+                      <View style={[styles.routeDot, styles.destinationDot]}>
+                        <IconSymbol 
+                          name="location.fill" 
+                          size={IconSizes.sm} 
+                          color={Colors.secondary.main} 
+                        />
                       </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Heure</Text>
-                        <Text style={styles.detailValue}>{booking.trip.time}</Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Places réservées</Text>
-                        <Text style={styles.detailValue}>{booking.seatsBooked}</Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Conducteur</Text>
-                        <Text style={styles.detailValue}>{booking.trip.driverName}</Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Total payé</Text>
-                        <Text style={styles.priceValue}>{booking.totalPrice} CFA</Text>
-                      </View>
+                      <Text style={styles.cityText}>{booking.trip.destination}</Text>
                     </View>
+                  </View>
 
-                    <View style={styles.statusBadge}>
-                      <Text style={styles.statusText}>
-                        {booking.status === 'confirmed' ? 'Confirmée' : 'En attente'}
+                  <View style={styles.divider} />
+
+                  {/* Info */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoRow}>
+                      <IconSymbol 
+                        name="calendar" 
+                        size={IconSizes.sm} 
+                        color={Colors.gray[600]} 
+                      />
+                      <Text style={styles.infoText}>{booking.trip.date}</Text>
+                    </View>
+                    
+                    <View style={styles.infoRow}>
+                      <IconSymbol 
+                        name="clock.fill" 
+                        size={IconSizes.sm} 
+                        color={Colors.gray[600]} 
+                      />
+                      <Text style={styles.infoText}>{booking.trip.time}</Text>
+                    </View>
+                    
+                    <View style={styles.infoRow}>
+                      <IconSymbol 
+                        name="chair.fill" 
+                        size={IconSizes.sm} 
+                        color={Colors.gray[600]} 
+                      />
+                      <Text style={styles.infoText}>
+                        {booking.seatsBooked} place{booking.seatsBooked > 1 ? 's' : ''}
                       </Text>
                     </View>
+                  </View>
 
-                    <View style={styles.actionsContainer}>
-                      <TouchableOpacity 
-                        style={styles.detailsButton}
-                        onPress={() => handleViewTripDetails(booking.tripId)}
-                      >
-                        <Text style={styles.detailsButtonText}>Voir</Text>
-                      </TouchableOpacity>
+                  <View style={styles.divider} />
 
-                      <TouchableOpacity 
-                        style={styles.shareButton}
-                        onPress={() => handleShareBooking(booking)}
-                      >
-                        <Text style={styles.shareButtonText}>Partager</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity 
-                        style={styles.cancelButton}
-                        onPress={() => handleCancelBooking(booking)}
-                      >
-                        <Text style={styles.cancelButtonText}>Annuler</Text>
-                      </TouchableOpacity>
+                  {/* Driver & Price */}
+                  <View style={styles.footer}>
+                    <View style={styles.driverSection}>
+                      <IconSymbol 
+                        name="person.fill" 
+                        size={IconSizes.sm} 
+                        color={Colors.gray[600]} 
+                      />
+                      <Text style={styles.driverText}>{booking.trip.driverName}</Text>
                     </View>
-                  </>
-                ) : (
-                  <Text style={styles.errorText}>Trajet introuvable</Text>
-                )}
-              </View>
+                    
+                    <Text style={styles.priceText}>{booking.totalPrice} CFA</Text>
+                  </View>
+
+                  {/* Actions */}
+                  <View style={styles.actionsRow}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.detailsButton]}
+                      onPress={() => handleViewTripDetails(booking.tripId)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        name="info.circle.fill" 
+                        size={IconSizes.sm} 
+                        color={Colors.primary.main} 
+                      />
+                      <Text style={styles.detailsButtonText}>Détails</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.shareButton]}
+                      onPress={() => handleShareBooking(booking)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        name="square.and.arrow.up" 
+                        size={IconSizes.sm} 
+                        color={Colors.secondary.main} 
+                      />
+                      <Text style={styles.shareButtonText}>Partager</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.cancelButton]}
+                      onPress={() => handleCancelBooking(booking)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        name="xmark.circle.fill" 
+                        size={IconSizes.sm} 
+                        color={Colors.error} 
+                      />
+                      <Text style={styles.cancelButtonText}>Annuler</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null
             ))}
           </View>
         )}
@@ -263,194 +357,294 @@ Réservé via Yoon`;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.light.backgroundSecondary,
   },
+  
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.light.backgroundSecondary,
   },
+  
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
+    marginTop: Spacing.md,
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[600],
   },
+  
+  // Header
   header: {
-    backgroundColor: 'white',
-    padding: 20,
-    paddingTop: 60,
+    backgroundColor: Colors.light.card,
+    paddingTop: Spacing['2xl'] + 20,
+    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: Colors.gray[200],
   },
+  
   backBtn: {
-    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
+  
   backBtnText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.primary.main,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.semibold,
   },
+  
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: Typography.sizes['2xl'],
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
   },
+  
+  // Content
   content: {
     flex: 1,
   },
+  
+  scrollContent: {
+    paddingBottom: Spacing['2xl'],
+  },
+  
+  // Empty State
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
-    marginTop: 60,
+    padding: Spacing.xl,
+    marginTop: Spacing['3xl'],
   },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: 20,
+  
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
   },
+  
   emptyText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[700],
+    marginBottom: Spacing.xs,
   },
+  
   emptySubtext: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[500],
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: Spacing.xl,
+    lineHeight: Typography.lineHeights.relaxed * Typography.sizes.base,
+    paddingHorizontal: Spacing.lg,
   },
+  
   searchButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 8,
-  },
-  searchButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  bookingsContainer: {
-    padding: 20,
-  },
-  count: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
-  },
-  bookingCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  routeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary.main,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.md,
   },
-  city: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+  
+  searchButtonText: {
+    color: Colors.light.background,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.fontWeights.bold,
   },
-  arrow: {
-    fontSize: 18,
-    marginHorizontal: 8,
-    color: '#007AFF',
+  
+  // Bookings Container
+  bookingsContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
-  detailsContainer: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#f0f0f0',
-    paddingVertical: 12,
-    marginBottom: 12,
+  
+  // Stats Card
+  statsCard: {
+    backgroundColor: Colors.light.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
   },
-  detailRow: {
+  
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  
+  statContent: {
+    flex: 1,
+  },
+  
+  statNumber: {
+    fontSize: Typography.sizes['3xl'],
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
+  },
+  
+  statLabel: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.gray[600],
+    marginTop: -4,
+  },
+  
+  // Booking Card
+  bookingCard: {
+    backgroundColor: Colors.light.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    ...Shadows.md,
+  },
+  
+  // Route Section
+  routeSection: {
+    marginBottom: Spacing.md,
+  },
+  
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  
+  routeDot: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  destinationDot: {
+    backgroundColor: Colors.secondary.light + '30',
+  },
+  
+  routeLine: {
+    width: 2,
+    height: 20,
+    backgroundColor: Colors.gray[300],
+    marginLeft: 15,
+    marginVertical: Spacing.xs / 2,
+  },
+  
+  cityText: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gray[900],
+  },
+  
+  divider: {
+    height: 1,
+    backgroundColor: Colors.gray[200],
+    marginVertical: Spacing.md,
+  },
+  
+  // Info Section
+  infoSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    marginBottom: Spacing.md,
   },
-  detailLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  priceValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#34C759',
-  },
-  statusBadge: {
-    backgroundColor: '#D4EDDA',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  statusText: {
-    color: '#155724',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  actionsContainer: {
+  
+  infoRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 6,
   },
+  
+  infoText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.gray[700],
+    fontWeight: Typography.fontWeights.medium,
+  },
+  
+  // Footer
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  
+  driverSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  
+  driverText: {
+    fontSize: Typography.sizes.base,
+    color: Colors.gray[700],
+    fontWeight: Typography.fontWeights.medium,
+  },
+  
+  priceText: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.primary.main,
+  },
+  
+  // Actions Row
+  actionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+  },
+  
   detailsButton: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: Colors.primary[50],
+    borderColor: Colors.primary.main,
   },
+  
   detailsButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: Colors.primary.main,
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.fontWeights.bold,
   },
+  
   shareButton: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#34C759',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: Colors.secondary.light + '20',
+    borderColor: Colors.secondary.main,
   },
+  
   shareButtonText: {
-    color: '#34C759',
-    fontSize: 14,
-    fontWeight: '600',
+    color: Colors.secondary.main,
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.fontWeights.bold,
   },
+  
   cancelButton: {
-    flex: 1,
-    backgroundColor: '#FF3B30',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: Colors.error + '10',
+    borderColor: Colors.error,
   },
+  
   cancelButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  errorText: {
-    color: '#666',
-    fontStyle: 'italic',
+    color: Colors.error,
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.fontWeights.bold,
   },
 });
